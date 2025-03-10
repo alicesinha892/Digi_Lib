@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fabric Digital Library</title>
+    <style>
+        /* Reset and base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #fff;
+            color: #333;
+        }
+
+        /* Header styles */
+        header {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .logo img {
+            height: 70px;
+            margin-right: 8px;
+        }
+
+        .search-container {
+            margin-left: auto;
+            position: relative;
+            width: 300px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 14px;
+            background-color: #f5f5f5;
+        }
+
+        .search-btn {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Hero section */
+        .hero {
+            background-size: cover;
+            background-position: center;
+            height: 300px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: #fff;
+            position: relative;
+        }
+
+        .hero-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .hero p {
+            font-size: 18px;
+        }
+
+        /* Category sections */
+        .category-section {
+            max-width: 1200px;
+            margin: 60px auto;
+            padding: 0 20px;
+        }
+
+        .category-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        .category-title {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .view-all {
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #d896a8;
+            font-size: 16px;
+            padding: 8px 20px;
+            border: 1px solid #d896a8;
+            border-radius: 20px;
+            transition: background-color 0.3s;
+        }
+
+        .view-all:hover {
+            background-color: #f9f0f3;
+        }
+
+        .view-all svg {
+            margin-left: 8px;
+        }
+
+        /* Product grid */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .product-card {
+            border: 1px solid #eee;
+            border-radius: 8px;
+            overflow: hidden;
+            transition: transform 0.3s, box-shadow 0.3s;
+            background-color: #fff;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image-container {
+            position: relative;
+            width: 100%;
+            height: 250px;
+            overflow: hidden;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: none;
+        }
+
+        .product-image.active {
+            display: block;
+        }
+
+        .image-nav {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 30px;
+            height: 30px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 5;
+        }
+
+        .prev-image {
+            left: 10px;
+        }
+
+        .next-image {
+            right: 10px;
+        }
+
+        .product-info {
+            padding: 15px;
+        }
+
+        .product-code {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .product-description, .product-price {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+        }
+
+        .pagination-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ddd;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+
+        .pagination-dot.active {
+            background-color: #999;
+        }
+
+        .pagination-arrow {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            border: 1px solid #d896a8;
+            background: none;
+            cursor: pointer;
+            margin: 0 15px;
+        }
+
+        .pagination-arrow svg {
+            fill: #d896a8;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 992px) {
+            .product-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .product-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .search-container {
+                width: 200px;
+            }
+            .hero h1 {
+                font-size: 36px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .product-grid {
+                grid-template-columns: 1fr;
+            }
+            .search-container {
+                width: 150px;
+            }
+            .hero h1 {
+                font-size: 28px;
+            }
+        }
+
+        /* Back to top button */
+        .back-to-top {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #d896a8;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 10;
+        }
+
+        .back-to-top.visible {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header with logo and search -->
+    <header>
+        <a href="/" class="logo">
+            <img src="images.png" alt="fwd Logo">
+            <span>Fabric Digital Library</span>
+        </a>
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="Search">
+            <button class="search-btn" id="search-button">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#999" viewBox="0 0 16 16">
+                    <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- Hero section with title -->
+    <section class="hero">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1>Fabric Library</h1>
+            <p>Choose fabrics at your fingertips</p>
+        </div>
+    </section>
+
+    <!-- Woven fabrics section -->
+    <section class="category-section" id="woven-section">
+        <div class="category-header">
+            <h2 class="category-title">Woven</h2>
+            <a href="/woven" class="view-all">
+                View all
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#d896a8" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </a>
+        </div>
+        
+        <div class="product-grid" id="woven-products">
+            <!-- Products will be loaded dynamically from Google Sheets -->
+        </div>
+
+        <div class="pagination" id="woven-pagination">
+            <button class="pagination-arrow prev-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                </svg>
+            </button>
+            <div class="pagination-dot active" data-page="0"></div>
+            <div class="pagination-dot" data-page="1"></div>
+            <div class="pagination-dot" data-page="2"></div>
+            <div class="pagination-dot" data-page="3"></div>
+            <button class="pagination-arrow next-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+        </div>
+    </section>
+
+    <!-- Knits fabrics section -->
+    <section class="category-section" id="knits-section">
+        <div class="category-header">
+            <h2 class="category-title">Knits</h2>
+            <a href="/knits" class="view-all">
+                View all
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="#d896a8" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </a>
+        </div>
+        
+        <div class="product-grid" id="knits-products">
+            <!-- Products will be loaded dynamically from Google Sheets -->
+        </div>
+
+        <div class="pagination" id="knits-pagination">
+            <button class="pagination-arrow prev-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                </svg>
+            </button>
+            <div class="pagination-dot active" data-page="0"></div>
+            <div class="pagination-dot" data-page="1"></div>
+            <div class="pagination-dot" data-page="2"></div>
+            <div class="pagination-dot" data-page="3"></div>
+            <button class="pagination-arrow next-arrow">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                </svg>
+            </button>
+        </div>
+    </section>
+
+    <!-- Back to top button -->
+    <div class="back-to-top">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+            <path fill-rule="evenodd" d="M7.646 4.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1-.708.708L8 5.707l-5.646 5.647a.5.5 0 0 1-.708-.708l6-6z"/>
+        </svg>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Google Sheets API integration
+        const GOOGLE_SHEET_ID = '14WCHS9p3gxeXJMrnwQKEu3_o2UhBiObGHf78RE4A1f4';
+        const SHEET_NAME = 'Products';
+        const API_KEY = 'AIzaSyDOvFKpQpYzEHkP6JkGUMg2PlTVvaBT3fo';
+        
+        // Global variables
+        let allProducts = [];
+        let wovenProducts = [];
+        let knitsProducts = [];
+        const PRODUCTS_PER_PAGE = 4;
+        
+        // Main function to fetch and process data
+        async function initializeApp() {
+            try {
+                // Set hero background
+                document.querySelector('.hero').style.backgroundImage = "url('Premium1.jpg')";
+                
+                // Fetch products from Google Sheets
+                await fetchSheetData();
+                
+                // Initialize pagination for both categories
+                initializePagination('woven');
+                initializePagination('knits');
+                
+                // Initialize search functionality
+                initializeSearch();
+                
+                // Initialize back to top button
+                initializeBackToTop();
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                // Show error message to user
+                alert('Error loading fabric data. Please try again later.');
+            }
+        }
+        
+        // Function to fetch data from Google Sheets
+        async function fetchSheetData() {
+            const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+            
+            try {
+                const response = await fetch(url);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.values && data.values.length > 1) {
+                    processSheetData(data.values);
+                } else {
+                    throw new Error('No data found in the sheet');
+                }
+            } catch (error) {
+                console.error('Error fetching data from Google Sheets:', error);
+                throw error;
+            }
+        }
+
+        // Function to process the sheet data
+        function processSheetData(values) {
+            // Extract headers from the first row
+            const headers = values[0].map(header => header.trim().toLowerCase());
+            
+            // Convert data to array of objects
+            allProducts = values.slice(1).map(row => {
+                const product = {};
+                headers.forEach((header, index) => {
+                    product[header] = row[index] || '';
+                });
+                return product;
+            });
+            
+            // Filter products by category
+            wovenProducts = allProducts.filter(p => 
+                p.category && p.category.toLowerCase() === 'woven'
+            );
+            
+            knitsProducts = allProducts.filter(p => 
+                p.category && p.category.toLowerCase() === 'knits'
+            );
+            
+            // Display initial page of products
+            displayProductPage('woven', 0);
+            displayProductPage('knits', 0);
+        }
+
+        // Function to display a page of products
+        function displayProductPage(category, pageIndex) {
+            const productsArray = category === 'woven' ? wovenProducts : knitsProducts;
+            const containerId = `${category}-products`;
+            const container = document.getElementById(containerId);
+            
+            // Calculate start and end indices
+            const startIndex = pageIndex * PRODUCTS_PER_PAGE;
+            const endIndex = Math.min(startIndex + PRODUCTS_PER_PAGE, productsArray.length);
+            const pageProducts = productsArray.slice(startIndex, endIndex);
+            
+            // Clear container
+            container.innerHTML = '';
+            
+            // Add products to container
+            pageProducts.forEach(product => {
+                // Create product card
+                const card = createProductCard(product);
+                container.appendChild(card);
+            });
+            
+            // Update pagination dots
+            updatePaginationDots(category, pageIndex);
+        }
+
+        // Function to create a product card
+        function createProductCard(product) {
+            const card = document.createElement('div');
+            card.className = 'product-card';
+            
+            // Prepare image URLs
+            const images = [
+                product.thumbnail || '',
+                product.image1 || '',
+                product.image2 || ''
+            ].filter(url => url !== '');
+            
+            // Create image HTML
+            let imagesHTML = '';
+            if (images.length > 0) {
+                imagesHTML = `
+                    <div class="product-image-container">
+                        ${images.map((url, index) => 
+                            `<img src="${url}" alt="${product.name || 'Fabric'}" class="product-image ${index === 0 ? 'active' : ''}" data-index="${index}">`
+                        ).join('')}
+                        ${images.length > 1 ? `
+                            <div class="image-nav prev-image">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#333" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
+                                </svg>
+                            </div>
+                            <div class="image-nav next-image">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#333" viewBox="0 0 16 16">
+                                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708z"/>
+                                </svg>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                // Fallback for products without images
+                imagesHTML = `
+                    <div class="product-image-container">
+                        <img src="/api/placeholder/400/300" alt="${product.name || 'Fabric'}" class="product-image active">
+                    </div>
+                `;
+            }
+            
+            // Format price in INR
+            const price = product.price ? `₹${product.price}` : '';
+            
+            // Construct card HTML
+            card.innerHTML = `
+                ${imagesHTML}
+                <div class="product-info">
+                    <div class="product-code">${product.name || ''}</div>
+                    <div class="product-description">${product.description || ''}</div>
+                    <div class="product-price">${price}</div>
+                </div>
+            `;
+            
+            // Add image slider functionality
+            if (images.length > 1) {
+                const imageContainer = card.querySelector('.product-image-container');
+                const productImages = card.querySelectorAll('.product-image');
+                
+                // Add event listeners to navigation buttons
+                const prevButton = card.querySelector('.prev-image');
+                const nextButton = card.querySelector('.next-image');
+                
+                prevButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    changeImage(productImages, -1);
+                });
+                
+                nextButton.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    changeImage(productImages, 1);
+                });
+            }
+            
+            return card;
+        }
+
+        // Function to change image in a product card
+        function changeImage(images, direction) {
+            const activeImage = Array.from(images).find(img => img.classList.contains('active'));
+            if (!activeImage) return;
+            
+            const currentIndex = parseInt(activeImage.dataset.index);
+            let newIndex = (currentIndex + direction + images.length) % images.length;
+            
+            // Hide all images
+            images.forEach(img => img.classList.remove('active'));
+            
+            // Show the new active image
+            Array.from(images).find(img => parseInt(img.dataset.index) === newIndex).classList.add('active');
+        }
+
+        // Function to initialize pagination
+        function initializePagination(category) {
+            const productsArray = category === 'woven' ? wovenProducts : knitsProducts;
+            const paginationElement = document.getElementById(`${category}-pagination`);
+            const pageCount = Math.ceil(productsArray.length / PRODUCTS_PER_PAGE);
+            
+            // Add event listeners to pagination dots
+            const dots = paginationElement.querySelectorAll('.pagination-dot');
+            dots.forEach(dot => {
+                dot.addEventListener('click', function() {
+                    const pageIndex = parseInt(this.dataset.page);
+                    displayProductPage(category, pageIndex);
+                });
+            });
+            
+            // Add event listeners to arrows
+            const prevArrow = paginationElement.querySelector('.prev-arrow');
+            const nextArrow = paginationElement.querySelector('.next-arrow');
+            
+            prevArrow.addEventListener('click', function() {
+                const activeDot = paginationElement.querySelector('.pagination-dot.active');
+                const currentPage = parseInt(activeDot.dataset.page);
+                const newPage = (currentPage - 1 + pageCount) % pageCount;
+                displayProductPage(category, newPage);
+            });
+            
+            nextArrow.addEventListener('click', function() {
+                const activeDot = paginationElement.querySelector('.pagination-dot.active');
+                const currentPage = parseInt(activeDot.dataset.page);
+                const newPage = (currentPage + 1) % pageCount;
+                displayProductPage(category, newPage);
+            });
+        }
+
+        // Function to update pagination dots
+        function updatePaginationDots(category, activeIndex) {
+            const paginationElement = document.getElementById(`${category}-pagination`);
+            const dots = paginationElement.querySelectorAll('.pagination-dot');
+            
+            dots.forEach(dot => {
+                dot.classList.remove('active');
+                if (parseInt(dot.dataset.page) === activeIndex) {
+                    dot.classList.add('active');
+                }
+            });
+        }
+
+        // Function to initialize search functionality
+        function initializeSearch() {
+            const searchInput = document.getElementById('search-input');
+            const searchButton = document.getElementById('search-button');
+            
+            // Function to perform search
+            const performSearch = () => {
+                const searchTerm = searchInput.value.trim().toLowerCase();
+                
+                if (searchTerm === '') {
+                    // If search is empty, show original categories
+                    document.getElementById('woven-section').style.display = 'block';
+                    document.getElementById('knits-section').style.display = 'block';
+                    displayProductPage('woven', 0);
+                    displayProductPage('knits', 0);
+                    return;
+                }
+                
+                // Filter products that match search term
+                const searchResults = allProducts.filter(product => {
+                    const searchableFields = [
+                        product.name || '',
+                        product.description || '',
+                        product.category || '',
+                        product.color || ''
+                    ];
+                    
+                    return searchableFields.some(field => 
+                        field.toLowerCase().includes(searchTerm)
+                    );
+                });
+                
+                // Determine which sections to show based on search results
+                const hasWoven = searchResults.some(p => p.category && p.category.toLowerCase() === 'woven');
+                const hasKnits = searchResults.some(p => p.category && p.category.toLowerCase() === 'knits');
+                
+                // Update woven section
+                document.getElementById('woven-section').style.display = hasWoven ? 'block' : 'none';
+                if (hasWoven) {
+                    const wovenResults = searchResults.filter(p => p.category && p.category.toLowerCase() === 'woven');
+                    const wovenContainer = document.getElementById('woven-products');
+                    wovenContainer.innerHTML = '';
+                    
+                    wovenResults.forEach(product => {
+                        const card = createProductCard(product);
+                        wovenContainer.appendChild(card);
+                    });
+                }
+                
+                // Update knits section
+                document.getElementById('knits-section').style.display = hasKnits ? 'block' : 'none';
+                if (hasKnits) {
+                    const knitsResults = searchResults.filter(p => p.category && p.category.toLowerCase() === 'knits');
+                    const knitsContainer = document.getElementById('knits-products');
+                    knitsContainer.innerHTML = '';
+                    
+                    knitsResults.forEach(product => {
+                        const card = createProductCard(product);
+                        knitsContainer.appendChild(card);
+                    });
+                }
+                
+                // If no results found, show message
+                if (!hasWoven && !hasKnits) {
+                    document.getElementById('woven-section').style.display = 'block';
+                    const wovenContainer = document.getElementById('woven-products');
+                    wovenContainer.innerHTML = '<p style="grid-column: span 4; text-align: center; padding: 20px;">No fabrics found matching your search term.</p>';
+                    document.getElementById('knits-section').style.display = 'none';
+                }
+            };
+            
+            // Add event listeners
+            searchButton.addEventListener('click', performSearch);
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter') {
+                    performSearch();
+                }
+            });
+        }
+
+        // Function to initialize back to top button
+        function initializeBackToTop() {
+            const backToTopButton = document.querySelector('.back-to-top');
+            
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 300) {
+                    backToTopButton.classList.add('visible');
+                } else {
+                    backToTopButton.classList.remove('visible');
+                }
+            });
+            
+            backToTopButton.addEventListener('click', () => {
+                window.scrollTo({
+                    top: 0,
+                    behavior: 'smooth'
+                });
+            });
+        }
+
+        // Initialize application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initializeApp);
+    </script>
+</body>
+</html>
