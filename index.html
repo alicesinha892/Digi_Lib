@@ -312,6 +312,35 @@
         .back-to-top.visible {
             opacity: 1;
         }
+
+        .loading-indicator {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            width: 100%;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #d896a8;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 20px;
+            color: #d32f2f;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -353,7 +382,9 @@
         </div>
         
         <div class="product-grid" id="woven-products">
-            <!-- Products will be loaded dynamically from Google Sheets -->
+            <div class="loading-indicator">
+                <div class="loading-spinner"></div>
+            </div>
         </div>
 
         <div class="pagination" id="woven-pagination">
@@ -387,7 +418,9 @@
         </div>
         
         <div class="product-grid" id="knits-products">
-            <!-- Products will be loaded dynamically from Google Sheets -->
+            <div class="loading-indicator">
+                <div class="loading-spinner"></div>
+            </div>
         </div>
 
         <div class="pagination" id="knits-pagination">
@@ -417,43 +450,31 @@
 
     <!-- Scripts -->
     <script>
-        // Google Sheets API integration
         const GOOGLE_SHEET_ID = '14WCHS9p3gxeXJMrnwQKEu3_o2UhBiObGHf78RE4A1f4';
         const SHEET_NAME = 'Products';
         const API_KEY = 'AIzaSyDOvFKpQpYzEHkP6JkGUMg2PlTVvaBT3fo';
         
-        // Global variables
         let allProducts = [];
         let wovenProducts = [];
         let knitsProducts = [];
         const PRODUCTS_PER_PAGE = 4;
         
-        // Main function to fetch and process data
         async function initializeApp() {
+            document.querySelector('.hero').style.backgroundImage = "url('Premium1.jpg')";
+            
             try {
-                // Set hero background
-                document.querySelector('.hero').style.backgroundImage = "url('Premium1.jpg')";
-                
-                // Fetch products from Google Sheets
                 await fetchSheetData();
-                
-                // Initialize pagination for both categories
                 initializePagination('woven');
                 initializePagination('knits');
-                
-                // Initialize search functionality
                 initializeSearch();
-                
-                // Initialize back to top button
                 initializeBackToTop();
             } catch (error) {
                 console.error('Error initializing app:', error);
-                // Show error message to user
-                alert('Error loading fabric data. Please try again later.');
+                showErrorMessage('woven-products', 'Failed to load fabric data. Please try again later.');
+                showErrorMessage('knits-products', 'Failed to load fabric data. Please try again later.');
             }
         }
         
-        // Function to fetch data from Google Sheets
         async function fetchSheetData() {
             const url = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
             
@@ -473,16 +494,33 @@
                 }
             } catch (error) {
                 console.error('Error fetching data from Google Sheets:', error);
-                throw error;
+                
+                // Fallback to direct API URL without CORS proxy
+                try {
+                    const fallbackUrl = `https://sheets.googleapis.com/v4/spreadsheets/${GOOGLE_SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+                    const fallbackResponse = await fetch(fallbackUrl);
+                    
+                    if (!fallbackResponse.ok) {
+                        throw new Error(`HTTP error! Status: ${fallbackResponse.status}`);
+                    }
+                    
+                    const fallbackData = await fallbackResponse.json();
+                    
+                    if (fallbackData.values && fallbackData.values.length > 1) {
+                        processSheetData(fallbackData.values);
+                    } else {
+                        throw new Error('No data found in the sheet');
+                    }
+                } catch (fallbackError) {
+                    console.error('Error fetching data with fallback method:', fallbackError);
+                    throw fallbackError;
+                }
             }
         }
 
-        // Function to process the sheet data
         function processSheetData(values) {
-            // Extract headers from the first row
             const headers = values[0].map(header => header.trim().toLowerCase());
             
-            // Convert data to array of objects
             allProducts = values.slice(1).map(row => {
                 const product = {};
                 headers.forEach((header, index) => {
@@ -491,7 +529,6 @@
                 return product;
             });
             
-            // Filter products by category
             wovenProducts = allProducts.filter(p => 
                 p.category && p.category.toLowerCase() === 'woven'
             );
@@ -500,57 +537,109 @@
                 p.category && p.category.toLowerCase() === 'knits'
             );
             
-            // Display initial page of products
             displayProductPage('woven', 0);
             displayProductPage('knits', 0);
         }
 
-        // Function to display a page of products
         function displayProductPage(category, pageIndex) {
             const productsArray = category === 'woven' ? wovenProducts : knitsProducts;
             const containerId = `${category}-products`;
             const container = document.getElementById(containerId);
             
-            // Calculate start and end indices
             const startIndex = pageIndex * PRODUCTS_PER_PAGE;
             const endIndex = Math.min(startIndex + PRODUCTS_PER_PAGE, productsArray.length);
             const pageProducts = productsArray.slice(startIndex, endIndex);
             
-            // Clear container
             container.innerHTML = '';
             
-            // Add products to container
-            pageProducts.forEach(product => {
-                // Create product card
-                const card = createProductCard(product);
-                container.appendChild(card);
-            });
+            if (pageProducts.length === 0) {
+                container.innerHTML = `<p style="grid-column: span 4; text-align: center; padding: 20px;">No ${category} fabrics found.</p>`;
+            } else {
+                pageProducts.forEach(product => {
+                    const card = createProductCard(product);
+                    container.appendChild(card);
+                });
+            }
             
-            // Update pagination dots
             updatePaginationDots(category, pageIndex);
         }
 
-        // Function to create a product card
+        function isValidUrl(url) {
+            if (!url) return false;
+            
+            // Check if URL is absolute
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return true;
+            }
+            
+            // Check if URL is a Drive ID or sharing URL
+            if (url.startsWith('1') && url.length > 20) {
+                return true;
+            }
+            
+            if (url.includes('drive.google.com') || url.includes('docs.google.com')) {
+                return true;
+            }
+            
+            return false;
+        }
+
+        function getProcessedImageUrl(url) {
+            if (!url || url.trim() === '') {
+                return null;
+            }
+            
+            url = url.trim();
+            
+            // Handle Google Drive links
+            if (url.includes('drive.google.com/file/d/')) {
+                const fileIdMatch = url.match(/\/d\/([^\/]+)/);
+                if (fileIdMatch && fileIdMatch[1]) {
+                    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+                }
+            }
+            
+            // Handle Google Drive sharing links
+            if (url.includes('drive.google.com/open?id=')) {
+                const fileIdMatch = url.match(/id=([^&]+)/);
+                if (fileIdMatch && fileIdMatch[1]) {
+                    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+                }
+            }
+            
+            // If just a file ID is provided
+            if (/^[A-Za-z0-9_-]{20,}$/.test(url)) {
+                return `https://drive.google.com/uc?export=view&id=${url}`;
+            }
+            
+            // Return the URL as is if it's already a complete URL
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            
+            // Default placeholder if unable to process
+            return null;
+        }
+
         function createProductCard(product) {
             const card = document.createElement('div');
             card.className = 'product-card';
             
-            // Prepare image URLs
-            const images = [
-                product.thumbnail || '',
-                product.image1 || '',
-                product.image2 || ''
-            ].filter(url => url !== '');
+            const imageUrls = [
+                getProcessedImageUrl(product.thumbnail),
+                getProcessedImageUrl(product.image1),
+                getProcessedImageUrl(product.image2),
+                getProcessedImageUrl(product.image3)
+            ].filter(url => url !== null);
             
-            // Create image HTML
             let imagesHTML = '';
-            if (images.length > 0) {
+            if (imageUrls.length > 0) {
                 imagesHTML = `
                     <div class="product-image-container">
-                        ${images.map((url, index) => 
-                            `<img src="${url}" alt="${product.name || 'Fabric'}" class="product-image ${index === 0 ? 'active' : ''}" data-index="${index}">`
+                        ${imageUrls.map((url, index) => 
+                            `<img src="${url}" alt="${product.name || 'Fabric'}" class="product-image ${index === 0 ? 'active' : ''}" data-index="${index}" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=\\'http://www.w3.org/2000/svg\\' width=\\'100%\\' height=\\'100%\\' viewBox=\\'0 0 400 300\\' preserveAspectRatio=\\'none\\'%3E%3Crect width=\\'100%\\' height=\\'100%\\' fill=\\'%23f0f0f0\\'/%3E%3Ctext x=\\'50%\\' y=\\'50%\\' dominant-baseline=\\'middle\\' text-anchor=\\'middle\\' font-family=\\'Arial\\' font-size=\\'14\\' fill=\\'%23999\\'%3EImage not available%3C/text%3E%3C/svg%3E';">`
                         ).join('')}
-                        ${images.length > 1 ? `
+                        ${imageUrls.length > 1 ? `
                             <div class="image-nav prev-image">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="#333" viewBox="0 0 16 16">
                                     <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0z"/>
@@ -565,18 +654,18 @@
                     </div>
                 `;
             } else {
-                // Fallback for products without images
                 imagesHTML = `
                     <div class="product-image-container">
-                        <img src="/api/placeholder/400/300" alt="${product.name || 'Fabric'}" class="product-image active">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 400 300" preserveAspectRatio="none">
+                            <rect width="100%" height="100%" fill="#f0f0f0"/>
+                            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="14" fill="#999">No image available</text>
+                        </svg>
                     </div>
                 `;
             }
             
-            // Format price in INR
             const price = product.price ? `₹${product.price}` : '';
             
-            // Construct card HTML
             card.innerHTML = `
                 ${imagesHTML}
                 <div class="product-info">
@@ -586,12 +675,10 @@
                 </div>
             `;
             
-            // Add image slider functionality
-            if (images.length > 1) {
+            if (imageUrls.length > 1) {
                 const imageContainer = card.querySelector('.product-image-container');
                 const productImages = card.querySelectorAll('.product-image');
                 
-                // Add event listeners to navigation buttons
                 const prevButton = card.querySelector('.prev-image');
                 const nextButton = card.querySelector('.next-image');
                 
@@ -611,7 +698,6 @@
             return card;
         }
 
-        // Function to change image in a product card
         function changeImage(images, direction) {
             const activeImage = Array.from(images).find(img => img.classList.contains('active'));
             if (!activeImage) return;
@@ -619,20 +705,15 @@
             const currentIndex = parseInt(activeImage.dataset.index);
             let newIndex = (currentIndex + direction + images.length) % images.length;
             
-            // Hide all images
             images.forEach(img => img.classList.remove('active'));
-            
-            // Show the new active image
             Array.from(images).find(img => parseInt(img.dataset.index) === newIndex).classList.add('active');
         }
 
-        // Function to initialize pagination
         function initializePagination(category) {
             const productsArray = category === 'woven' ? wovenProducts : knitsProducts;
             const paginationElement = document.getElementById(`${category}-pagination`);
             const pageCount = Math.ceil(productsArray.length / PRODUCTS_PER_PAGE);
             
-            // Add event listeners to pagination dots
             const dots = paginationElement.querySelectorAll('.pagination-dot');
             dots.forEach(dot => {
                 dot.addEventListener('click', function() {
@@ -641,7 +722,6 @@
                 });
             });
             
-            // Add event listeners to arrows
             const prevArrow = paginationElement.querySelector('.prev-arrow');
             const nextArrow = paginationElement.querySelector('.next-arrow');
             
@@ -658,9 +738,15 @@
                 const newPage = (currentPage + 1) % pageCount;
                 displayProductPage(category, newPage);
             });
+
+            // Hide pagination if no products
+            if (productsArray.length === 0) {
+                paginationElement.style.display = 'none';
+            } else {
+                paginationElement.style.display = 'flex';
+            }
         }
 
-        // Function to update pagination dots
         function updatePaginationDots(category, activeIndex) {
             const paginationElement = document.getElementById(`${category}-pagination`);
             const dots = paginationElement.querySelectorAll('.pagination-dot');
@@ -673,108 +759,100 @@
             });
         }
 
-        // Function to initialize search functionality
+        function showErrorMessage(containerId, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
         function initializeSearch() {
-            const searchInput = document.getElementById('search-input');
-            const searchButton = document.getElementById('search-button');
-            
-            // Function to perform search
-            const performSearch = () => {
-                const searchTerm = searchInput.value.trim().toLowerCase();
-                
-                if (searchTerm === '') {
-                    // If search is empty, show original categories
-                    document.getElementById('woven-section').style.display = 'block';
-                    document.getElementById('knits-section').style.display = 'block';
-                    displayProductPage('woven', 0);
-                    displayProductPage('knits', 0);
-                    return;
-                }
-                
-                // Filter products that match search term
-                const searchResults = allProducts.filter(product => {
-                    const searchableFields = [
-                        product.name || '',
-                        product.description || '',
-                        product.category || '',
-                        product.color || ''
-                    ];
-                    
-                    return searchableFields.some(field => 
-                        field.toLowerCase().includes(searchTerm)
-                    );
-                });
-                
-                // Determine which sections to show based on search results
-                const hasWoven = searchResults.some(p => p.category && p.category.toLowerCase() === 'woven');
-                const hasKnits = searchResults.some(p => p.category && p.category.toLowerCase() === 'knits');
-                
-                // Update woven section
-                document.getElementById('woven-section').style.display = hasWoven ? 'block' : 'none';
-                if (hasWoven) {
-                    const wovenResults = searchResults.filter(p => p.category && p.category.toLowerCase() === 'woven');
-                    const wovenContainer = document.getElementById('woven-products');
-                    wovenContainer.innerHTML = '';
-                    
-                    wovenResults.forEach(product => {
-                        const card = createProductCard(product);
-                        wovenContainer.appendChild(card);
-                    });
-                }
-                
-                // Update knits section
-                document.getElementById('knits-section').style.display = hasKnits ? 'block' : 'none';
-                if (hasKnits) {
-                    const knitsResults = searchResults.filter(p => p.category && p.category.toLowerCase() === 'knits');
-                    const knitsContainer = document.getElementById('knits-products');
-                    knitsContainer.innerHTML = '';
-                    
-                    knitsResults.forEach(product => {
-                        const card = createProductCard(product);
-                        knitsContainer.appendChild(card);
-                    });
-                }
-                
-                // If no results found, show message
-                if (!hasWoven && !hasKnits) {
-                    document.getElementById('woven-section').style.display = 'block';
-                    const wovenContainer = document.getElementById('woven-products');
-                    wovenContainer.innerHTML = '<p style="grid-column: span 4; text-align: center; padding: 20px;">No fabrics found matching your search term.</p>';
-                    document.getElementById('knits-section').style.display = 'none';
-                }
-            };
-            
-            // Add event listeners
-            searchButton.addEventListener('click', performSearch);
-            searchInput.addEventListener('keydown', function(e) {
-                if (e.key === 'Enter') {
-                    performSearch();
-                }
-            });
+    const searchInput = document.getElementById('search-input');
+    const searchButton = document.getElementById('search-button');
+    
+    searchButton.addEventListener('click', function() {
+        performSearch(searchInput.value);
+    });
+    
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            performSearch(searchInput.value);
         }
+    });
+}
 
-        // Function to initialize back to top button
-        function initializeBackToTop() {
-            const backToTopButton = document.querySelector('.back-to-top');
-            
-            window.addEventListener('scroll', () => {
-                if (window.scrollY > 300) {
-                    backToTopButton.classList.add('visible');
-                } else {
-                    backToTopButton.classList.remove('visible');
-                }
-            });
-            
-            backToTopButton.addEventListener('click', () => {
-                window.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            });
+function performSearch(query) {
+    query = query.toLowerCase().trim();
+    
+    if (query === '') {
+        // Reset to show all products
+        wovenProducts = allProducts.filter(p => 
+            p.category && p.category.toLowerCase() === 'woven'
+        );
+        
+        knitsProducts = allProducts.filter(p => 
+            p.category && p.category.toLowerCase() === 'knits'
+        );
+    } else {
+        // Filter products based on search query
+        wovenProducts = allProducts.filter(p => 
+            p.category && 
+            p.category.toLowerCase() === 'woven' && 
+            (
+                (p.name && p.name.toLowerCase().includes(query)) || 
+                (p.description && p.description.toLowerCase().includes(query))
+            )
+        );
+        
+        knitsProducts = allProducts.filter(p => 
+            p.category && 
+            p.category.toLowerCase() === 'knits' && 
+            (
+                (p.name && p.name.toLowerCase().includes(query)) || 
+                (p.description && p.description.toLowerCase().includes(query))
+            )
+        );
+    }
+    
+    // Display first page of filtered results
+    displayProductPage('woven', 0);
+    displayProductPage('knits', 0);
+    
+    // Update pagination for both sections
+    updatePaginationVisibility('woven');
+    updatePaginationVisibility('knits');
+}
+
+function updatePaginationVisibility(category) {
+    const productsArray = category === 'woven' ? wovenProducts : knitsProducts;
+    const paginationElement = document.getElementById(`${category}-pagination`);
+    
+    // Hide pagination if no products or only one page
+    if (productsArray.length <= PRODUCTS_PER_PAGE) {
+        paginationElement.style.display = 'none';
+    } else {
+        paginationElement.style.display = 'flex';
+    }
+}
+
+function initializeBackToTop() {
+    const backToTopButton = document.querySelector('.back-to-top');
+    
+    window.addEventListener('scroll', function() {
+        if (window.pageYOffset > 300) {
+            backToTopButton.classList.add('visible');
+        } else {
+            backToTopButton.classList.remove('visible');
         }
+    });
+    
+    backToTopButton.addEventListener('click', function() {
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth'
+        });
+    });
+}
 
-        // Initialize application when DOM is loaded
-        document.addEventListener('DOMContentLoaded', initializeApp);
+// Initialize the application when page is loaded
+document.addEventListener('DOMContentLoaded', initializeApp);
     </script>
 </body>
 </html>
